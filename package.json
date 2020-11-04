@@ -10,16 +10,65 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:logtailer.helloWorld"
+    "onView:logs"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "logtailer-explorer",
+          "title": "LogTailer",
+          "icon": "$(file-text)"
+        }
+      ]
+    },
+    "views": {
+      "logtailer-explorer": [
+        {
+          "id": "logs",
+          "name": "Logs"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "logtailer.helloWorld",
-        "title": "Hello World"
+        "command": "logs.add",
+        "title": "Add",
+        "icon": "$(add)"
+      },
+      {
+        "command": "logs.remove",
+        "title": "Remove",
+        "icon": "$(notifications-clear)"
+      },
+      {
+        "command": "logs.removeAll",
+        "title": "Remove All",
+        "icon": "$(notifications-clear-all)"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "logs.add",
+          "when": "view == logs",
+          "group": "navigation"
+        },
+        {
+          "command": "logs.removeAll",
+          "when": "view == logs",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "logs.remove",
+          "when": "view == logs",
+          "group": "inline"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
