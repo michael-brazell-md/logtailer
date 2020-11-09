@@ -9,20 +9,31 @@ import { Pipe } from 'stream';
 import { getVSCodeDownloadUrl } from 'vscode-test/out/util';
 import { URLSearchParams } from 'url';
 import { notDeepEqual } from 'assert';
+import { formatWithOptions } from 'util';
 
 export class Log {
+   textEditor: vscode.TextEditor | undefined = undefined;
+   watch: vscode.Disposable | undefined = undefined;
+   autoScroll: boolean = true;
+
    constructor(public readonly name: string,
       public readonly uri: vscode.Uri) {
+   }
+
+   tail(): void {
+      if (this.textEditor !== undefined) {
+         const lineCount = this.textEditor.document.lineCount;
+         const start = new vscode.Position(lineCount, 0);
+         const end = new vscode.Position(lineCount+1, 0);
+         const range = new vscode.Range(start, end);
+         this.textEditor.revealRange(range);
+      }
    }
 }
 /*
 class LogResources {
-
-   outputCh: vscode.OutputChannel;
-   proc: cp.ChildProcess | undefined = undefined;
-
    constructor(public readonly name: string) {
-      this.outputCh = vscode.window.createOutputChannel(name + " - LogTailer");
+      //this.outputCh = vscode.window.createOutputChannel(name + " - LogTailer");
    }
 }
 */
@@ -35,6 +46,7 @@ export class Dependency extends vscode.TreeItem {
       readonly command?: vscode.Command,
       readonly log?: string) {
       super(name, collapsibleState);
+      //super.description = contextValue;
    }
    /*
    get tooltip(): string | undefined {
@@ -127,6 +139,52 @@ export class LogsTreeDataProvider implements vscode.TreeDataProvider<Dependency>
       return Promise.resolve(false);
    }
 
+   async open(uri: vscode.Uri) {
+      try {
+         let log = this.state.getLog(path.basename(uri.fsPath, '.log'));
+         if (log !== undefined) {
+            log.textEditor = await vscode.window.showTextDocument(log.uri);
+
+
+            log.watch = this.watch(log, {recursive: false, excludes: new Array});
+            if (log.autoScroll) {
+               log.tail();
+            }
+         }
+      }
+      catch (err) {
+         vscode.window.showErrorMessage(err.toString());
+      }
+   }
+
+   private watch(log: Log, options: { recursive: boolean; excludes: string[]; }): vscode.Disposable | undefined {
+      try {
+         const watcher = fs.watch(log.uri.fsPath, { recursive: options.recursive }, async (event: string, filename: string | Buffer) => {
+            if (event === 'change') {
+               if (log.autoScroll) {
+                  log.tail();
+               }
+            }
+         });
+         return { dispose: () => watcher.close() };
+      }
+      catch (err) {
+         vscode.window.showErrorMessage(err.toString());
+      }
+   }
+
+   autoScroll(uri: vscode.Uri, autoScroll: boolean) {
+      try {
+         let log = this.state.getLog(path.basename(uri.fsPath, '.log'));
+         if (log !== undefined) {
+            log.autoScroll = autoScroll;
+            this.refresh();
+         }
+      }
+      catch (err) {
+         vscode.window.showErrorMessage(err.toString());
+      }
+   }
    /*
    async addScript(name: string) {
       try {
@@ -386,6 +444,7 @@ export class LogsTreeDataProvider implements vscode.TreeDataProvider<Dependency>
       return false;
    }
    */
+
    getChildren(element?: Dependency): vscode.ProviderResult<Dependency[]> {
       try {
          if (element) {
@@ -407,7 +466,8 @@ export class LogsTreeDataProvider implements vscode.TreeDataProvider<Dependency>
                   const log = this.state.getLog(name);
                   if (log)
                   {
-                     children.push(new Dependency(log.name, '', vscode.TreeItemCollapsibleState.Collapsed, log.uri, { command: 'logs.openFile', title: "Open File", arguments: [log.uri] }, name));
+                     const context = log.autoScroll ? 'autoScrollingOn' : 'autoScrollingOff';
+                     children.push(new Dependency(log.name, context, vscode.TreeItemCollapsibleState.None, log.uri, { command: 'logs.openFile', title: "Open File", arguments: [log] }, name));
                   }
                });
 

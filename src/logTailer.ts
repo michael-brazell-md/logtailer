@@ -169,9 +169,31 @@ export class LogTailer {
             }
         });
         */
-        this.registerCommand(context, 'logs.openFile', (resource: vscode.Uri) => {
+        this.registerCommand(context, 'logs.openFile', (log: logs.Log) => {
             try {
-                vscode.window.showTextDocument(resource);
+                if (log.uri !== undefined) {
+                    this.logsTreeDataProvider.open(log.uri);
+                }
+            } catch (err) {
+                vscode.window.showErrorMessage(err.toString());
+            }
+        });
+
+        this.registerCommand(context, 'logs.autoScrollOn', (dependency: logs.Dependency) => {
+            try {
+                if (dependency.resourceUri !== undefined) {
+                    this.logsTreeDataProvider.autoScroll(dependency.resourceUri, true);
+                }
+            } catch (err) {
+                vscode.window.showErrorMessage(err.toString());
+            }
+        });
+
+        this.registerCommand(context, 'logs.autoScrollOff', (dependency: logs.Dependency) => {
+            try {
+                if (dependency.resourceUri !== undefined) {
+                    this.logsTreeDataProvider.autoScroll(dependency.resourceUri, false);
+                }
             } catch (err) {
                 vscode.window.showErrorMessage(err.toString());
             }

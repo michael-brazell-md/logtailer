@@ -19,7 +19,7 @@
         {
           "id": "logtailer-explorer",
           "title": "LogTailer",
-          "icon": "$(file-text)"
+          "icon": "src/icons/file-code.svg"
         }
       ]
     },
@@ -38,14 +38,24 @@
         "icon": "$(add)"
       },
       {
-        "command": "logs.remove",
-        "title": "Remove",
-        "icon": "$(notifications-clear)"
-      },
-      {
         "command": "logs.removeAll",
         "title": "Remove All",
         "icon": "$(notifications-clear-all)"
+      },
+      {
+        "command": "logs.autoScrollOn",
+        "title": "Enable Auto Scrolling",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "logs.autoScrollOff",
+        "title": "Disable Auto Scrolling",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "logs.remove",
+        "title": "Remove",
+        "icon": "$(notifications-clear)"
       }
     ],
     "menus": {
@@ -62,6 +72,16 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "logs.autoScrollOn",
+          "when": "view == logs && viewItem == autoScrollingOff",
+          "group": "inline"
+        },
+        {
+          "command": "logs.autoScrollOff",
+          "when": "view == logs && viewItem == autoScrollingOn",
+          "group": "inline"
+        },
         {
           "command": "logs.remove",
           "when": "view == logs",
