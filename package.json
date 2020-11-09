@@ -2,6 +2,14 @@
   "name": "logtailer",
   "displayName": "LogTailer",
   "description": "",
+  "repository": {
+    "url": "https://github.com/michael-brazell-md/logtailer"
+  },
+  "publisher": "michael-brazell",
+  "author": {
+    "name": "Michael Brazell",
+    "email": "mbrazell@protonmail.com"
+  },
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.50.0"
@@ -19,7 +27,7 @@
         {
           "id": "logtailer-explorer",
           "title": "LogTailer",
-          "icon": "src/icons/file-code.svg"
+          "icon": "src/icons/output.svg"
         }
       ]
     },
