@@ -17,17 +17,7 @@ export class Log {
    autoScroll: boolean = true;
 
    constructor(public readonly name: string,
-      public readonly uri: vscode.Uri) {
-   }
-
-   tail(): void {
-      if (this.textEditor !== undefined) {
-         const lineCount = this.textEditor.document.lineCount;
-         const start = new vscode.Position(lineCount, 0);
-         const end = new vscode.Position(lineCount+1, 0);
-         const range = new vscode.Range(start, end);
-         this.textEditor.revealRange(range);
-      }
+      public readonly path: string) {
    }
 }
 /*
@@ -43,8 +33,8 @@ export class Dependency extends vscode.TreeItem {
       readonly contextValue?: string,
       readonly collapsibleState?: vscode.TreeItemCollapsibleState,
       readonly resourceUri?: vscode.Uri,
-      readonly command?: vscode.Command,
-      readonly log?: string) {
+      readonly command?: vscode.Command/*,
+      //readonly log?: string*/) {
       super(name, collapsibleState);
       //super.description = contextValue;
    }
@@ -88,19 +78,16 @@ export class LogsTreeDataProvider implements vscode.TreeDataProvider<Dependency>
          const uri = await vscode.window.showOpenDialog({ canSelectFolders: false, canSelectFiles: true, canSelectMany: false, openLabel: 'Select Log File', filters: { 'Log': ['log'] } });
          if (uri) {
             // create new Log object
-            let log = new Log(path.basename(uri[0].fsPath, '.log'), uri[0]);
+            let log = new Log(path.basename(uri[0].fsPath, '.log'), uri[0].fsPath);
 
             // add new Log object to workspace state
             this.state.addLog(log);
-
-            // TEMP
-            let log2 = this.state.getLog(log.name);
 
             // refresh view
             this.refresh();
 
             // invoke add event cb
-            this.on('added', log.uri.fsPath);
+            this.on('added', log.path);
          }
       } catch (err) {
          vscode.window.showErrorMessage(err.toString());
@@ -139,16 +126,18 @@ export class LogsTreeDataProvider implements vscode.TreeDataProvider<Dependency>
       return Promise.resolve(false);
    }
 
-   async open(uri: vscode.Uri) {
+   async open(name: string) {
       try {
-         let log = this.state.getLog(path.basename(uri.fsPath, '.log'));
+         let log = this.state.getLog(name);   
          if (log !== undefined) {
-            log.textEditor = await vscode.window.showTextDocument(log.uri);
-
-
-            log.watch = this.watch(log, {recursive: false, excludes: new Array});
+            //log.textEditor = undefined;
+            //log.watch = undefined;
+            log.textEditor = await vscode.window.showTextDocument(vscode.Uri.file(log.path));
+            log.watch = this.watch(log, {recursive: false, persistent: true, excludes: new Array});
+            //this.state.updateLog(log);
+            //this.refresh();
             if (log.autoScroll) {
-               log.tail();
+               this.tail(log);
             }
          }
       }
@@ -157,19 +146,36 @@ export class LogsTreeDataProvider implements vscode.TreeDataProvider<Dependency>
       }
    }
 
-   private watch(log: Log, options: { recursive: boolean; excludes: string[]; }): vscode.Disposable | undefined {
+   private watch(log: Log, options: { recursive: boolean; persistent: boolean; excludes: string[]; }): vscode.Disposable | undefined {
       try {
-         const watcher = fs.watch(log.uri.fsPath, { recursive: options.recursive }, async (event: string, filename: string | Buffer) => {
+         const watcher = fs.watch(log.path, options, async (event: string, filename: string | Buffer) => {
             if (event === 'change') {
                if (log.autoScroll) {
-                  log.tail();
+                  this.tail(log);
                }
             }
          });
-         return { dispose: () => watcher.close() };
+         return { 
+            dispose: () => {
+               vscode.window.showInformationMessage("watcher disposed");
+               watcher.close();
+            }
+         };
       }
       catch (err) {
          vscode.window.showErrorMessage(err.toString());
+      }
+   }
+
+   private tail(log: Log) {
+      if (log.textEditor !== undefined) {
+         const lineCount = log.textEditor.document.lineCount;
+         if (lineCount >= 2) {
+            const start = new vscode.Position(lineCount-2, 0);
+            const end = new vscode.Position(lineCount-1, 0);
+            const range = new vscode.Range(start, end);
+            log.textEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+         }
       }
    }
 
@@ -178,6 +184,9 @@ export class LogsTreeDataProvider implements vscode.TreeDataProvider<Dependency>
          let log = this.state.getLog(path.basename(uri.fsPath, '.log'));
          if (log !== undefined) {
             log.autoScroll = autoScroll;
+            if (log.autoScroll) {
+               this.tail(log);
+            }
             this.refresh();
          }
       }
@@ -464,10 +473,9 @@ export class LogsTreeDataProvider implements vscode.TreeDataProvider<Dependency>
                let children = new Array<Dependency>();
                logArr.forEach(name => {
                   const log = this.state.getLog(name);
-                  if (log)
-                  {
+                  if (log) {
                      const context = log.autoScroll ? 'autoScrollingOn' : 'autoScrollingOff';
-                     children.push(new Dependency(log.name, context, vscode.TreeItemCollapsibleState.None, log.uri, { command: 'logs.openFile', title: "Open File", arguments: [log] }, name));
+                     children.push(new Dependency(log.name, context, vscode.TreeItemCollapsibleState.None, vscode.Uri.file(log.path), { command: 'logs.openFile', title: "Open File", arguments: [log.name] } ));
                   }
                });
 

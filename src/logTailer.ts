@@ -169,10 +169,10 @@ export class LogTailer {
             }
         });
         */
-        this.registerCommand(context, 'logs.openFile', (log: logs.Log) => {
+        this.registerCommand(context, 'logs.openFile', (name: string) => {
             try {
-                if (log.uri !== undefined) {
-                    this.logsTreeDataProvider.open(log.uri);
+                if (name !== undefined) {
+                    this.logsTreeDataProvider.open(name);
                 }
             } catch (err) {
                 vscode.window.showErrorMessage(err.toString());

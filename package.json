@@ -10,7 +10,7 @@
     "name": "Michael Brazell",
     "email": "mbrazell@protonmail.com"
   },
-  "version": "0.0.2",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.50.0"
   },
@@ -27,7 +27,7 @@
         {
           "id": "logtailer-explorer",
           "title": "LogTailer",
-          "icon": "media/output.svg"
+          "icon": "media/LT.svg"
         }
       ]
     },
